@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SkyCast Pro — Premium real-time weather forecast app with hourly and 7-day forecasts, animated UI, and geolocation support." />
+  <meta name="theme-color" content="#0f1724" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta property="og:title" content="SkyCast Pro Weather" />
+  <meta property="og:description" content="Beautiful real-time weather forecasts powered by OpenWeatherMap" />
+  <title>SkyCast Pro — Weather Forecast</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="weather-default" id="app-body">
+
+  <!-- Animated Background Particles -->
+  <div class="bg-particles" id="bg-particles" aria-hidden="true">
+    <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+    <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+    <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+
+  <!-- Weather Animation Layer -->
+  <div class="weather-animation" id="weather-animation" aria-hidden="true"></div>
+
+  <!-- Main App Container -->
+  <div class="app-container">
+
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="20" cy="20" r="8" fill="url(#sun-grad)" />
+          <g class="sun-rays">
+            <line x1="20" y1="4" x2="20" y2="9" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="20" y1="31" x2="20" y2="36" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="4" y1="20" x2="9" y2="20" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="31" y1="20" x2="36" y2="20" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="8.04" y1="8.04" x2="11.57" y2="11.57" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="28.43" y1="28.43" x2="31.96" y2="31.96" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="31.96" y1="8.04" x2="28.43" y2="11.57" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="11.57" y1="28.43" x2="8.04" y2="31.96" stroke="url(#ray-grad)" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+          <defs>
+            <radialGradient id="sun-grad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FFD700"/><stop offset="100%" stop-color="#FF8C00"/>
+            </radialGradient>
+            <linearGradient id="ray-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#FFD700"/><stop offset="100%" stop-color="#FF8C00" stop-opacity="0.4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-text">SkyCast <span class="logo-accent">Pro</span></span>
+      </div>
+      <div class="header-controls">
+        <div class="unit-toggle" role="group" aria-label="Temperature unit">
+          <button id="btn-celsius" class="unit-btn active" aria-pressed="true" title="Switch to Celsius">°C</button>
+          <button id="btn-fahrenheit" class="unit-btn" aria-pressed="false" title="Switch to Fahrenheit">°F</button>
+        </div>
+        <div class="header-time" id="header-time" aria-live="polite"></div>
+      </div>
+    </header>
+
+    <!-- SEARCH SECTION -->
+    <section class="search-section" aria-label="City search">
+      <div class="search-wrapper">
+        <div class="search-bar glass-card">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="search-input" class="search-input" placeholder="Search city, country..."
+            autocomplete="off" aria-label="Search for a city" aria-autocomplete="list"
+            aria-controls="search-dropdown" aria-expanded="false" />
+          <button id="search-clear" class="search-clear" aria-label="Clear search" hidden>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <ul id="search-dropdown" class="search-dropdown glass-card" role="listbox" aria-label="City suggestions" hidden></ul>
+        <button id="btn-geolocate" class="geo-btn glass-card" title="Use my location" aria-label="Detect my location">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- LOADING STATE -->
+    <div id="loading-state" class="loading-state hidden" aria-live="polite" aria-busy="true">
+      <div class="spinner"></div>
+      <p>Fetching weather data...</p>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div id="error-state" class="error-state hidden" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p id="error-message">Something went wrong.</p>
+      <button id="error-retry" class="btn-primary">Try Again</button>
+    </div>
+
+    <!-- WEATHER CONTENT -->
+    <main id="weather-content" class="weather-content hidden" aria-label="Weather information">
+
+      <!-- Current Weather Hero -->
+      <section class="current-weather glass-card" aria-label="Current weather">
+        <div class="current-left">
+          <div class="location-row">
+            <svg class="location-pin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/>
+              <circle cx="12" cy="9" r="2.5" fill="white"/>
+            </svg>
+            <h1 id="current-city" class="city-name">--</h1>
+            <span id="current-country" class="country-badge">--</span>
+          </div>
+          <p id="current-date" class="current-date">--</p>
+          <div class="temp-display">
+            <span id="current-temp" class="temperature">--</span>
+            <span class="temp-unit-label" id="temp-unit-label">°C</span>
+          </div>
+          <p id="current-desc" class="weather-desc">--</p>
+          <div class="feels-row">
+            <span>Feels like <strong id="current-feels">--</strong></span>
+            <span class="temp-range">
+              <span id="current-high">H: --</span> · <span id="current-low">L: --</span>
+            </span>
+          </div>
+        </div>
+        <div class="current-right">
+          <div class="weather-icon-container" id="current-icon-container" aria-label="Weather icon">
+            <div class="weather-icon-large" id="current-icon">☀️</div>
+          </div>
+          <div class="sun-times">
+            <div class="sun-item">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 17V7M7 12l5-5 5 5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><span class="sun-label">Sunrise</span><span id="current-sunrise" class="sun-time">--</span></div>
+            </div>
+            <div class="sun-item">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 7v10M17 12l-5 5-5-5M5 4h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><span class="sun-label">Sunset</span><span id="current-sunset" class="sun-time">--</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats Grid -->
+      <section class="stats-grid" aria-label="Weather statistics">
+        <div class="stat-card glass-card">
+          <div class="stat-icon">💧</div>
+          <div class="stat-info">
+            <span class="stat-label">Humidity</span>
+            <span class="stat-value" id="stat-humidity-val">--</span>
+            <div class="stat-bar"><div class="stat-bar-fill" id="humidity-bar"></div></div>
+          </div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-icon">🌬️</div>
+          <div class="stat-info">
+            <span class="stat-label">Wind Speed</span>
+            <span class="stat-value" id="stat-wind-val">--</span>
+            <span class="stat-sub" id="stat-wind-dir">--</span>
+          </div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-icon">🌡️</div>
+          <div class="stat-info">
+            <span class="stat-label">Pressure</span>
+            <span class="stat-value" id="stat-pressure-val">--</span>
+            <span class="stat-sub">hPa</span>
+          </div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-icon">👁️</div>
+          <div class="stat-info">
+            <span class="stat-label">Visibility</span>
+            <span class="stat-value" id="stat-visibility-val">--</span>
+            <span class="stat-sub">km</span>
+          </div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-icon">☁️</div>
+          <div class="stat-info">
+            <span class="stat-label">Cloud Cover</span>
+            <span class="stat-value" id="stat-clouds-val">--</span>
+            <div class="stat-bar"><div class="stat-bar-fill" id="clouds-bar"></div></div>
+          </div>
+        </div>
+        <div class="stat-card glass-card">
+          <div class="stat-icon">💨</div>
+          <div class="stat-info">
+            <span class="stat-label">Wind Gust</span>
+            <span class="stat-value" id="stat-gust-val">--</span>
+            <span class="stat-sub">m/s</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Hourly Forecast Strip -->
+      <section class="hourly-section glass-card" aria-label="Hourly forecast">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Hourly Forecast
+        </h2>
+        <div class="hourly-scroll" id="hourly-scroll" role="list"></div>
+      </section>
+
+      <!-- Temperature Chart -->
+      <section class="chart-section glass-card" aria-label="Temperature chart">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          24-Hour Temperature
+        </h2>
+        <div class="chart-wrapper">
+          <canvas id="temp-chart" aria-label="Temperature chart for next 24 hours" role="img"></canvas>
+        </div>
+      </section>
+
+      <!-- 7-Day Forecast -->
+      <section class="daily-section" aria-label="7-day forecast">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          7-Day Forecast
+        </h2>
+        <div class="daily-grid" id="daily-grid" role="list"></div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <p>Powered by <a href="https://openweathermap.org" target="_blank" rel="noopener noreferrer">OpenWeatherMap</a> · SkyCast Pro &copy; 2025</p>
+      <p id="last-updated" class="last-updated"></p>
+    </footer>
+
+  </div><!-- /.app-container -->
+
+  <script src="/js/api.js"></script>
+  <script src="/js/charts.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

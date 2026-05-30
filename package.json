@@ -1,0 +1,14 @@
+{
+  "name": "skycast-pro",
+  "version": "1.0.0",
+  "description": "Full-stack weather forecast web app with Node.js backend and premium UI",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": ["weather", "forecast", "fullstack", "nodejs", "express"],
+  "author": "SkyCast Pro",
+  "license": "ISC"
+}
