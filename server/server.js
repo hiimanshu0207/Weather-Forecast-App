@@ -53,11 +53,13 @@ app.use('/api', limiter);
 // ─── JSON Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json());
 
-// ─── Static Files (Frontend) ──────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, '../public'), {
-  maxAge: '1h',
-  etag: true
-}));
+// ─── Static Files (local dev only — Vercel CDN serves these in production) ────
+if (!process.env.VERCEL) {
+  app.use(express.static(path.join(__dirname, '../public'), {
+    maxAge: '1h',
+    etag: true
+  }));
+}
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api', weatherRoutes);
@@ -72,10 +74,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ─── SPA Fallback (serve index.html for all non-API routes) ──────────────────
-app.get('/{*splat}', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
+// ─── SPA Fallback (local dev only — Vercel handles this via vercel.json routes)
+if (!process.env.VERCEL) {
+  app.get('/{*splat}', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+  });
+}
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {

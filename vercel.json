@@ -1,19 +1,12 @@
 {
   "version": 2,
-  "name": "skycast-pro",
   "builds": [
-    {
-      "src": "server/server.js",
-      "use": "@vercel/node"
-    }
+    { "src": "server/server.js", "use": "@vercel/node" },
+    { "src": "public/**", "use": "@vercel/static" }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server/server.js"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+    { "src": "/api/(.*)", "dest": "server/server.js" },
+    { "src": "/(.*\\.(?:js|css|svg|json|png|ico|woff2?))", "dest": "public/$1" },
+    { "src": "/(.*)", "dest": "public/index.html" }
+  ]
 }
