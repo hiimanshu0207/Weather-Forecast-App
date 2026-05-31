@@ -5,60 +5,35 @@
 
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
+const cors    = require('cors');
+const path    = require('path');
 const weatherRoutes = require('./routes/weather');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3000;
+const IS_VERCEL = !!process.env.VERCEL;
 
-// ─── Security Middleware ───────────────────────────────────────────────────────
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "https://openweathermap.org"],
-      connectSrc: ["'self'"],
-    },
-  },
-}));
-
-// ─── CORS ─────────────────────────────────────────────────────────────────────
-// On Vercel, frontend + API share the same domain, so allow all same-origin.
-// Locally, restrict to localhost only.
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? true  // same-origin on Vercel
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  methods: ['GET'],
-  optionsSuccessStatus: 200
-}));
-
-// ─── Rate Limiting ────────────────────────────────────────────────────────────
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 150,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests. Please try again later.' }
-});
-
-app.use('/api', limiter);
+// ─── CORS ────────────────────────────────────────────────────────────────────
+app.use(cors({ origin: true, methods: ['GET', 'OPTIONS'], optionsSuccessStatus: 200 }));
 
 // ─── JSON Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json());
 
-// ─── Static Files (local dev only — Vercel CDN serves these in production) ────
-if (!process.env.VERCEL) {
-  app.use(express.static(path.join(__dirname, '../public'), {
-    maxAge: '1h',
-    etag: true
+// ─── Rate Limiting (local only — Vercel has built-in DDoS protection) ────────
+if (!IS_VERCEL) {
+  const rateLimit = require('express-rate-limit');
+  app.use('/api', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 150,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again later.' }
   }));
+}
+
+// ─── Static Files (local dev only — Vercel CDN serves these in production) ───
+if (!IS_VERCEL) {
+  app.use(express.static(path.join(__dirname, '../public'), { maxAge: '1h', etag: true }));
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
@@ -69,33 +44,30 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+    environment: process.env.NODE_ENV || 'production',
+    apiKey: process.env.OPENWEATHER_API_KEY ? '✓ set' : '✗ missing',
     version: '1.0.0'
   });
 });
 
-// ─── SPA Fallback (local dev only — Vercel handles this via vercel.json routes)
-if (!process.env.VERCEL) {
+// ─── SPA Fallback (local dev only — Vercel handles via vercel.json routes) ───
+if (!IS_VERCEL) {
   app.get('/{*splat}', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
   });
 }
 
-// ─── Global Error Handler ─────────────────────────────────────────────────────
+// ─── Global Error Handler — always returns JSON ───────────────────────────────
 app.use((err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] Error:`, err.message);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
+  console.error(`[ERROR] ${new Date().toISOString()}`, err.message);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
-// ─── Start Server (local only — Vercel uses exported app directly) ───────────
-if (process.env.VERCEL !== '1') {
+// ─── Start Server (local only) ────────────────────────────────────────────────
+if (!IS_VERCEL) {
   app.listen(PORT, () => {
-    console.log(`\n🌤  SkyCast Pro Server running at http://localhost:${PORT}`);
-    console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🔑 API Key: ${process.env.OPENWEATHER_API_KEY ? '✓ Configured' : '✗ Missing — set OPENWEATHER_API_KEY in .env'}\n`);
+    console.log(`\n🌤  SkyCast Pro running at http://localhost:${PORT}`);
+    console.log(`🔑 API Key: ${process.env.OPENWEATHER_API_KEY ? '✓ Configured' : '✗ Missing'}\n`);
   });
 }
 
