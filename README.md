@@ -90,7 +90,3 @@ WeatherForecast/
 | `GET /api/forecast?city=Mumbai` | 7-day + hourly forecast |
 | `GET /api/search?q=Lon` | City autocomplete |
 | `GET /api/health` | Server health check |
-
-## 📄 License
-
-MIT
