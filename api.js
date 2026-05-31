@@ -1,9 +1,9 @@
 /**
  * SkyCast Pro — Vercel Serverless API Handler (single-file, no relative imports)
  * All routes inlined so @vercel/node bundles correctly.
+ * NOTE: No dotenv here — Vercel injects env vars directly.
  */
 
-require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const axios   = require('axios');
