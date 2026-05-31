@@ -29,9 +29,11 @@ app.use(helmet({
 }));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
+// On Vercel, frontend + API share the same domain, so allow all same-origin.
+// Locally, restrict to localhost only.
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
+    ? true  // same-origin on Vercel
     : ['http://localhost:3000', 'http://127.0.0.1:3000'],
   methods: ['GET'],
   optionsSuccessStatus: 200
@@ -84,11 +86,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🌤  SkyCast Pro Server running at http://localhost:${PORT}`);
-  console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔑 API Key: ${process.env.OPENWEATHER_API_KEY ? '✓ Configured' : '✗ Missing — set OPENWEATHER_API_KEY in .env'}\n`);
-});
+// ─── Start Server (local only — Vercel uses exported app directly) ───────────
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`\n🌤  SkyCast Pro Server running at http://localhost:${PORT}`);
+    console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔑 API Key: ${process.env.OPENWEATHER_API_KEY ? '✓ Configured' : '✗ Missing — set OPENWEATHER_API_KEY in .env'}\n`);
+  });
+}
 
 module.exports = app;
